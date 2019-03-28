@@ -57,7 +57,7 @@ public class SocketForServer {
     public int rx_cmd(BufferedReader cmd,PrintWriter out) {
         try {
             String cmd_in = cmd.readLine();
-            if (cmd_in.equals("WRITE_TEST")) {
+            if (cmd_in.equals("SERVER_TEST")) {
                 System.out.println("Test write received from sender");
             }
         }
@@ -65,6 +65,10 @@ public class SocketForServer {
         return 1;
     }
 
+
+    public synchronized void clientTest(){
+        out.println("CLIENT_TEST");
+    }
 
     public Socket getOtherClient() {
         return otherClient;

@@ -18,7 +18,6 @@ public class Server {
     String port;
     String ipAddress;
     HashMap<String,SocketForServer> serverSocketConnectionHashMap = new HashMap<>();
-    HashMap<String, String> serverAndWorkFolder = new HashMap<>();
 
     public List<Node> getAllServerNodes() {
         return allServerNodes;
@@ -33,12 +32,14 @@ public class Server {
         }
 
         Pattern STATUS = Pattern.compile("^STATUS$");
+        Pattern CLIENT_TEST = Pattern.compile("^CLIENT_TEST$");
 
         int rx_cmd(Scanner cmd){
             String cmd_in = null;
             if (cmd.hasNext())
                 cmd_in = cmd.nextLine();
             Matcher m_STATUS = STATUS.matcher(cmd_in);
+            Matcher m_CLIENT_TEST = CLIENT_TEST.matcher(cmd_in);
 
             if(m_STATUS.find()){
                 System.out.println("SERVER SOCKET STATUS:");
@@ -51,8 +52,13 @@ public class Server {
                 catch (Exception e){
                     System.out.println("SOMETHING WENT WRONG IN TERMINAL COMMAND PROCESSOR");
                 }
-
             }
+
+            else if(m_CLIENT_TEST.find()){
+                sendClientTest();
+            }
+
+
 
             return 1;
         }
@@ -64,6 +70,13 @@ public class Server {
         }
     }
 
+
+    public void sendClientTest(){
+        Integer clientId;
+        for (clientId = 0; clientId < this.serverSocketConnectionList.size(); clientId++){
+            serverSocketConnectionList.get(clientId).clientTest();
+        }
+    }
 
     public void setServerList(){
         try {

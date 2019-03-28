@@ -84,13 +84,15 @@ public class Client {
         }
 
         Pattern STATUS = Pattern.compile("^STATUS$");
-
+        Pattern SERVER_TEST = Pattern.compile("^SERVER_TEST$");
 
         int rx_cmd(Scanner cmd){
             String cmd_in = null;
             if (cmd.hasNext())
                 cmd_in = cmd.nextLine();
             Matcher m_STATUS = STATUS.matcher(cmd_in);
+            Matcher m_SERVER_TEST = SERVER_TEST.matcher(cmd_in);
+
             if(m_STATUS.find()){
                 System.out.println("CLIENT SOCKET STATUS:");
                 try {
@@ -105,6 +107,10 @@ public class Client {
 
             }
 
+            else if(m_SERVER_TEST.find()){
+                sendServerTest();
+            }
+
             return 1;
         }
 
@@ -114,7 +120,12 @@ public class Client {
         }
     }
 
-
+    public void sendServerTest(){
+        Integer serverId;
+        for (serverId = 0; serverId < this.socketConnectionListServer.size(); serverId++){
+            socketConnectionListServer.get(serverId).serverTest();
+        }
+    }
 
     /*Helps establish the socket connection to all the servers available*/
     public void setupServerConnection(Client current){
@@ -260,6 +271,7 @@ public class Client {
         Client C1 = new Client(args[0]);
         C1.setClientList();
         C1.setServerList();
+        C1.setupServerConnection(C1);
         C1.clientSocket(Integer.valueOf(args[0]),C1);
 
         System.out.println("Started Client with ID: " + C1.getId());
