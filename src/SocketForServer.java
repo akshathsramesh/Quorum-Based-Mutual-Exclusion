@@ -66,28 +66,6 @@ public class SocketForServer {
     }
 
 
-    public synchronized void publish() {
-        out.println("P");
-    }
-
-
-
-
-    public synchronized void sendWriteAcknowledge(String fileName){
-        System.out.println("Sending write ACK: " + fileName);
-        out.println("WRITE_TO_FILE_ACK");
-        out.println(fileName);
-    }
-
-
-    public synchronized void sendHostedFiles(String hostedFiles){
-        System.out.println("Sending hosted file info");
-        out.println("ENQUIRE_ACK");
-        out.println(hostedFiles);
-    }
-
-
-
     public Socket getOtherClient() {
         return otherClient;
     }
