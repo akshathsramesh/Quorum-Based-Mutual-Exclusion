@@ -25,7 +25,7 @@ public class Client {
     HashMap<String,SocketForClient> socketConnectionHashMap = new HashMap<>();
     HashMap<String,SocketForClient> socketConnectionHashMapServer = new HashMap<>();
     HashMap<String,Boolean> clientPermissionRequired = new HashMap<>();
-
+    List<List<String>> quorum = new LinkedList<>();
 
     public Client(String id) {
         this.Id = id;
@@ -76,6 +76,7 @@ public class Client {
         Pattern SERVER_TEST = Pattern.compile("^SERVER_TEST$");
         Pattern REQUEST_TEST = Pattern.compile("^REQUEST_TEST$");
         Pattern RELEASE_TEST = Pattern.compile("^RELEASE_TEST$");
+        Pattern SHOW_QUORUM_LIST = Pattern.compile("^SHOW_QUORUM_LIST$");
 
         int rx_cmd(Scanner cmd){
             String cmd_in = null;
@@ -85,7 +86,7 @@ public class Client {
             Matcher m_SERVER_TEST = SERVER_TEST.matcher(cmd_in);
             Matcher m_REQUEST_TEST = REQUEST_TEST.matcher(cmd_in);
             Matcher m_RLEASE_TEST = RELEASE_TEST.matcher(cmd_in);
-
+            Matcher m_SHOW_QUORUM_LIST = SHOW_QUORUM_LIST.matcher(cmd_in);
             if(m_STATUS.find()){
                 System.out.println("CLIENT SOCKET STATUS:");
                 try {
@@ -104,7 +105,6 @@ public class Client {
                 sendServerTest();
             }
 
-
             else if(m_REQUEST_TEST.find()){
                 sendRequestTest();
             }
@@ -113,6 +113,9 @@ public class Client {
                 sendReleaseTest();
             }
 
+            else if(m_SHOW_QUORUM_LIST.find()){
+                printQuorumList();
+            }
             return 1;
         }
 
@@ -276,6 +279,38 @@ public class Client {
 
     }
 
+
+    public void setQuorumList(){
+        try {
+            BufferedReader br = new BufferedReader(new FileReader("config_quorum.txt"));
+            try {
+                StringBuilder sb = new StringBuilder();
+                String line = br.readLine();
+
+                while (line != null) {
+                    sb.append(line);
+                    List<String> parsed_quorum = Arrays.asList(line.split(","));
+                    this.quorum.add(parsed_quorum);
+                    sb.append(System.lineSeparator());
+                    line = br.readLine();
+                }
+            } finally {
+                br.close();
+            }
+        }
+        catch (Exception e) {
+            System.out.println("Something went wrong while parsing the quorum" + e);
+        }
+    }
+
+    public void printQuorumList(){
+        Integer quorumId;
+
+        for (quorumId = 0; quorumId < this.quorum.size(); quorumId ++){
+            System.out.println("Quorum at ID: " + quorumId + " with quorum members: "+this.quorum.get(quorumId).toString());
+        }
+    }
+
     public static void main(String[] args) {
 
         if (args.length != 1)
@@ -292,7 +327,7 @@ public class Client {
         C1.setServerList();
         C1.setupServerConnection(C1);
         C1.clientSocket(Integer.valueOf(args[0]),C1);
-
+        C1.setQuorumList();
         System.out.println("Started Client with ID: " + C1.getId());
     }
 }

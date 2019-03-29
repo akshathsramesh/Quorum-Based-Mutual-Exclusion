@@ -19,6 +19,8 @@ public class Server {
     String ipAddress;
     HashMap<String,SocketForServer> serverSocketConnectionHashMap = new HashMap<>();
 
+
+
     public List<Node> getAllServerNodes() {
         return allServerNodes;
     }
@@ -126,6 +128,9 @@ public class Server {
         catch (Exception e) {
         }
     }
+
+
+
 
     public void serverSocket(Integer serverId, Server currentServer){
         try
