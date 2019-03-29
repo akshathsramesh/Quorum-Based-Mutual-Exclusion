@@ -60,6 +60,20 @@ public class SocketForServer {
             if (cmd_in.equals("SERVER_TEST")) {
                 System.out.println("Test write received from sender");
             }
+
+            else if(cmd_in.equals("REQUEST")) {
+                String requestingClientId = cmd.readLine();
+                String requestSequenceNumber = cmd.readLine();
+                System.out.println("Received REQUEST from client " + requestingClientId + "which had the sequence number: " + requestSequenceNumber );
+                my_master.processRequest(requestingClientId,requestSequenceNumber);
+            }
+
+            else if(cmd_in.equals("RELEASE")){
+                String releaseClientId = cmd.readLine();
+                String releaseSequenceNumber = cmd.readLine();
+                System.out.println("Received REQUEST from client " + releaseClientId + "which had the sequence number: " + releaseSequenceNumber );
+                my_master.processRelease(releaseClientId,releaseSequenceNumber);
+            }
         }
         catch (Exception e){}
         return 1;
@@ -68,6 +82,11 @@ public class SocketForServer {
 
     public synchronized void clientTest(){
         out.println("CLIENT_TEST");
+    }
+
+    public synchronized void sendGrant(){
+        out.println("GRANT");
+        out.println(my_id);
     }
 
     public Socket getOtherClient() {

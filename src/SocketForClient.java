@@ -21,7 +21,7 @@ public class SocketForClient {
         this.remote_id = remote_id;
     }
 
-    public SocketForClient(Socket otherClient, String myId, Boolean Initiator, Client my_master) {
+    public SocketForClient(Socket otherClient, String myId, Client my_master) {
         this.otherClient = otherClient;
         this.my_id = myId;
         this.my_master = my_master;
@@ -30,20 +30,7 @@ public class SocketForClient {
             out = new PrintWriter(this.otherClient.getOutputStream(), true);
         }
         catch (Exception e){
-
-        }
-
-        try {
-            if(!Initiator) {
-                out.println("SEND_ID");
-                System.out.println("SEND_ID request sent");
-                remote_id = in.readLine();
-                System.out.println("SEND_ID request response received with ID: " + remote_id);
-            }
-        }
-
-        catch (Exception e){
-
+            System.out.println("Exception while creating buffer in out for socket connection");
         }
         Thread read = new Thread(){
             public void run(){
@@ -67,6 +54,12 @@ public class SocketForClient {
                 System.out.println("CLIENT TEST RECEIVED");
             }
 
+            else if(cmd_in.equals("GRANT")){
+                String serverSendingGrant = cmd.readLine();
+                System.out.println("GRANT received from server " + serverSendingGrant);
+                my_master.processGrant(serverSendingGrant);
+            }
+
         }
         catch (Exception e){}
         return 1;
@@ -77,6 +70,17 @@ public class SocketForClient {
         out.println("SERVER_TEST");
     }
 
+    public synchronized void serverRequestTest(){
+        out.println("REQUEST");
+        out.println(this.my_id);
+        out.println("0");
+    }
+
+    public synchronized void serverReleaseTest(){
+        out.println("RELEASE");
+        out.println(this.my_id);
+        out.println("0");
+    }
     public Socket getOtherClient() {
         return otherClient;
     }

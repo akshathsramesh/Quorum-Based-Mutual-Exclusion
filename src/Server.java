@@ -33,6 +33,7 @@ public class Server {
 
         Pattern STATUS = Pattern.compile("^STATUS$");
         Pattern CLIENT_TEST = Pattern.compile("^CLIENT_TEST$");
+        Pattern TEST_GRANT = Pattern.compile("^TEST_GRANT$");
 
         int rx_cmd(Scanner cmd){
             String cmd_in = null;
@@ -40,6 +41,7 @@ public class Server {
                 cmd_in = cmd.nextLine();
             Matcher m_STATUS = STATUS.matcher(cmd_in);
             Matcher m_CLIENT_TEST = CLIENT_TEST.matcher(cmd_in);
+            Matcher m_TEST_GRANT = TEST_GRANT.matcher(cmd_in);
 
             if(m_STATUS.find()){
                 System.out.println("SERVER SOCKET STATUS:");
@@ -58,7 +60,9 @@ public class Server {
                 sendClientTest();
             }
 
-
+            else if(m_TEST_GRANT.find()){
+                sendClientGrantTest();
+            }
 
             return 1;
         }
@@ -71,10 +75,28 @@ public class Server {
     }
 
 
+    public synchronized void processRequest(String requestingClientId, String requestSequenceNumber){
+        System.out.println("Inside process request for Client: " + requestingClientId + " with sequence number " + requestSequenceNumber);
+        serverSocketConnectionHashMap.get(requestingClientId).sendGrant();
+    }
+
+
+    public synchronized void processRelease(String releasingClientId, String requestSequenceNumber){
+        System.out.println("Inside process request for Client: " + releasingClientId + " with sequence number " + requestSequenceNumber);
+    }
+
+
     public void sendClientTest(){
         Integer clientId;
         for (clientId = 0; clientId < this.serverSocketConnectionList.size(); clientId++){
             serverSocketConnectionList.get(clientId).clientTest();
+        }
+    }
+
+    public void sendClientGrantTest(){
+        Integer clientId;
+        for (clientId = 0; clientId < this.serverSocketConnectionList.size(); clientId++){
+            serverSocketConnectionList.get(clientId).sendGrant();
         }
     }
 

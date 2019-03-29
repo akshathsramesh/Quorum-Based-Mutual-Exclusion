@@ -25,18 +25,7 @@ public class Client {
     HashMap<String,SocketForClient> socketConnectionHashMap = new HashMap<>();
     HashMap<String,SocketForClient> socketConnectionHashMapServer = new HashMap<>();
     HashMap<String,Boolean> clientPermissionRequired = new HashMap<>();
-    Integer highestLogicalClockValue = 0;
-    Integer outStandingReplyCount = 0;
-    Boolean requestedCS = false;
-    Boolean usingCS = false;
-    List<String> deferredReplyList = new LinkedList<>();
-    String requestedCSForFile;
-    Integer minimumDelay = 5000;
-    String availableFileList = "";
-    Boolean criticalSectionReadOrWriteComplete = true;
-    String fileProcessOption = "RW";
-    Integer noOfServer = 0;
-    Integer writeAckCount = 0;
+
 
     public Client(String id) {
         this.Id = id;
@@ -85,6 +74,8 @@ public class Client {
 
         Pattern STATUS = Pattern.compile("^STATUS$");
         Pattern SERVER_TEST = Pattern.compile("^SERVER_TEST$");
+        Pattern REQUEST_TEST = Pattern.compile("^REQUEST_TEST$");
+        Pattern RELEASE_TEST = Pattern.compile("^RELEASE_TEST$");
 
         int rx_cmd(Scanner cmd){
             String cmd_in = null;
@@ -92,6 +83,8 @@ public class Client {
                 cmd_in = cmd.nextLine();
             Matcher m_STATUS = STATUS.matcher(cmd_in);
             Matcher m_SERVER_TEST = SERVER_TEST.matcher(cmd_in);
+            Matcher m_REQUEST_TEST = REQUEST_TEST.matcher(cmd_in);
+            Matcher m_RLEASE_TEST = RELEASE_TEST.matcher(cmd_in);
 
             if(m_STATUS.find()){
                 System.out.println("CLIENT SOCKET STATUS:");
@@ -111,6 +104,15 @@ public class Client {
                 sendServerTest();
             }
 
+
+            else if(m_REQUEST_TEST.find()){
+                sendRequestTest();
+            }
+
+            else if(m_RLEASE_TEST.find()){
+                sendReleaseTest();
+            }
+
             return 1;
         }
 
@@ -127,6 +129,25 @@ public class Client {
         }
     }
 
+    public void sendRequestTest(){
+        Integer serverId;
+        for (serverId = 0; serverId < this.socketConnectionListServer.size(); serverId++){
+            socketConnectionListServer.get(serverId).serverRequestTest();
+        }
+    }
+
+    public void sendReleaseTest(){
+        Integer serverId;
+        for (serverId = 0; serverId < this.socketConnectionListServer.size(); serverId++){
+            socketConnectionListServer.get(serverId).serverReleaseTest();
+        }
+    }
+
+    public synchronized void processGrant(String serverSendingGrant){
+        System.out.println("Inside process grant for server ID "+ serverSendingGrant);
+
+    }
+
     /*Helps establish the socket connection to all the servers available*/
     public void setupServerConnection(Client current){
         try{
@@ -134,15 +155,13 @@ public class Client {
             Integer serverId;
             for (serverId =0; serverId < allServerNodes.size(); serverId ++){
                 Socket serverConnection = new Socket(this.allServerNodes.get(serverId).getIpAddress(), Integer.valueOf(this.allServerNodes.get(serverId).getPort()));
-                SocketForClient socketConnectionServer = new SocketForClient(serverConnection,this.getId(),true,current);
+                SocketForClient socketConnectionServer = new SocketForClient(serverConnection,this.getId(),current);
                 if(socketConnectionServer.getRemote_id() == null){
                     socketConnectionServer.setRemote_id(Integer.toString(serverId));
                 }
                 socketConnectionListServer.add(socketConnectionServer);
                 socketConnectionHashMapServer.put(socketConnectionServer.getRemote_id(),socketConnectionServer);
             }
-
-            this.noOfServer = socketConnectionListServer.size();
         }
         catch (Exception e){
             System.out.println("Setup Server Connection Failure");
@@ -179,7 +198,7 @@ public class Client {
                 while(true){
                     try{
                         Socket s = server.accept();
-                        SocketForClient socketConnection = new SocketForClient(s,Id,false, current);
+                        SocketForClient socketConnection = new SocketForClient(s,Id, current);
                         socketConnectionList.add(socketConnection);
                         socketConnectionHashMap.put(socketConnection.getRemote_id(),socketConnection);
                         clientPermissionRequired.put(socketConnection.getRemote_id(),true);
