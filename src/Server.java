@@ -104,7 +104,7 @@ public class Server {
         try {
             System.out.println(reportingClient+" Client Completed 20 CS Execution Pending Completion " + this.currentReportCounter + " out of " + this.numberOfClients );
             BufferedWriter writer = new BufferedWriter(new FileWriter("stat.txt", true));
-            writer.append(reportingClient+" Client -> "+reportingMessage);
+            writer.append(reportingClient+" Client -> "+reportingMessage+"\n");
             writer.close();
         }
         catch (Exception e){

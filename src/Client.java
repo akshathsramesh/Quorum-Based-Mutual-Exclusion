@@ -215,7 +215,7 @@ public class Client {
                 System.out.println();
                 BufferedWriter writer = new BufferedWriter(new FileWriter("critical_section_log.txt", true));
                 Date date = new Date();
-                writer.append( this.getId()+" Client used critical section at timestamp -> "+ date.getTime());
+                writer.append( this.getId()+" Client used critical section at timestamp -> "+ date.getTime()+"\n");
                 writer.close();
             }
             catch (Exception e){
