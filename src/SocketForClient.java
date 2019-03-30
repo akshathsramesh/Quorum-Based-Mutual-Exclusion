@@ -69,6 +69,11 @@ public class SocketForClient {
                 my_master.pushServerStats();
             }
 
+            else if(cmd_in.equals("TRIGGER")){
+                System.out.println("RECEIVED TRIGGER FROM SERVER ");
+                my_master.autoRequest();
+            }
+
         }
         catch (Exception e){}
         return 1;

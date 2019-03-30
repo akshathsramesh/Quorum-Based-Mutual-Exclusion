@@ -175,9 +175,10 @@ public class Client {
                 try {
                     while(true) {
                         if(requestCounter < 20) {
-                            System.out.println("Auto - Generating request - Client has set delay of: " + genRequestDelay);
+//                          System.out.println("Auto - Generating request - Client has set delay of: " + genRequestDelay);
                             Thread.sleep(genRequestDelay);
                             if (!requestedCS) {
+                                System.out.println("REQUESTING CS");
                                 sendRequest();
                             }
                         }
@@ -194,10 +195,12 @@ public class Client {
     public void sendRequest(){
         this.requestedCS = true;
         this.requestCounter+=1;
-        int randomNum = ThreadLocalRandom.current().nextInt(0, quorum.size() + 1);
-        System.out.println("Chosen random number: " + randomNum + " but choosing index 0 for test purpose");
-        List<String> quorumMembers = quorum.get(0);
-        this.currentQuorumIndex = 0;
+        int randomNum = ThreadLocalRandom.current().nextInt(0, quorum.size());
+        System.out.println("Chosen random number: " + randomNum );
+//        List<String> quorumMembers = quorum.get(0);
+//        this.currentQuorumIndex = 0;
+        List<String> quorumMembers = quorum.get(randomNum);
+        this.currentQuorumIndex = randomNum;
         Integer quorumMemberId ;
         this.outStandingGrantCount = quorumMembers.size();
         for(quorumMemberId = 0; quorumMemberId < quorumMembers.size(); quorumMemberId++){
@@ -221,8 +224,7 @@ public class Client {
             catch (Exception e){
                 System.out.println("STATUS FILE WRITE ERROR");
             }
-            TimeUnit.MILLISECONDS.sleep(3000);
-            System.out.println("******************Ending critical section wait for three seconds******************");
+            TimeUnit.MILLISECONDS.sleep(30);
             this.releaseCriticalSection();
         }
         catch (Exception e){}
@@ -241,6 +243,7 @@ public class Client {
         if(this.requestCounter == 20){
             sendStats();
         }
+        System.out.println("******************EXITING RELEASE ******************");
     }
 
     public synchronized void sendStats(){
@@ -250,6 +253,7 @@ public class Client {
 
 
     public synchronized void pushServerStats(){
+        System.out.println("SEND PUSH SERVER STATS TO ALL SERVERS");
         Integer serverId;
         for(serverId = 0; serverId < socketConnectionListServer.size(); serverId ++){
             socketConnectionListServer.get(serverId).pushServerStats();

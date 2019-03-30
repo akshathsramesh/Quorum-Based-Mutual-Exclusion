@@ -87,6 +87,7 @@ public class SocketForServer {
             }
 
             else if(cmd_in.equals("SERVER_STATS")){
+                System.out.println("Server received push server stats");
                 my_master.logServerCounter();
             }
         }
@@ -105,9 +106,14 @@ public class SocketForServer {
     }
 
     public synchronized void pushServerStats(){
+        System.out.println("SENDING PUSH SERVER STATS TO CLIENT 0");
         out.println("PUSH_SERVER_STATS");
     }
 
+
+    public synchronized void sendTrigger(){
+        out.println("TRIGGER");
+    }
     public Socket getOtherClient() {
         return otherClient;
     }

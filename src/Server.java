@@ -44,6 +44,7 @@ public class Server {
         Pattern STATUS = Pattern.compile("^STATUS$");
         Pattern CLIENT_TEST = Pattern.compile("^CLIENT_TEST$");
         Pattern TEST_GRANT = Pattern.compile("^TEST_GRANT$");
+        Pattern TRIGGER = Pattern.compile("^TRIGGER$");
 
         int rx_cmd(Scanner cmd){
             String cmd_in = null;
@@ -52,6 +53,7 @@ public class Server {
             Matcher m_STATUS = STATUS.matcher(cmd_in);
             Matcher m_CLIENT_TEST = CLIENT_TEST.matcher(cmd_in);
             Matcher m_TEST_GRANT = TEST_GRANT.matcher(cmd_in);
+            Matcher m_TRIGGER = TRIGGER.matcher(cmd_in);
 
             if(m_STATUS.find()){
                 System.out.println("SERVER SOCKET STATUS:");
@@ -75,6 +77,9 @@ public class Server {
                 sendClientGrantTest();
             }
 
+            else if(m_TRIGGER.find()){
+                sendTriggerToClient();
+            }
             return 1;
         }
 
@@ -85,6 +90,14 @@ public class Server {
         }
     }
 
+
+    public synchronized void sendTriggerToClient(){
+        System.out.println("Sending TRIGGER TO CLIENT");
+        Integer ClientId;
+        for(ClientId=0; ClientId < serverSocketConnectionList.size() ; ClientId++){
+            serverSocketConnectionHashMap.get(ClientId.toString()).sendTrigger();
+        }
+    }
 
     public synchronized void processRequest(String requestingClientId, String requestTimeStamp){
         System.out.println("Inside process request for Client: " + requestingClientId + " with sequence number " + requestTimeStamp);
@@ -117,6 +130,7 @@ public class Server {
     }
 
     public synchronized void logServerCounter(){
+        System.out.println("LOG SERVER COUNTERS -------------------- END OF SIMULATION");
 
     }
 
