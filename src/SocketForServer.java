@@ -71,7 +71,7 @@ public class SocketForServer {
             else if(cmd_in.equals("RELEASE")){
                 String releaseClientId = cmd.readLine();
                 String releaseSequenceNumber = cmd.readLine();
-                System.out.println("Received REQUEST from client " + releaseClientId + "which had the sequence number: " + releaseSequenceNumber );
+                System.out.println("Received RELEASE from client " + releaseClientId + "which had the sequence number: " + releaseSequenceNumber );
                 my_master.processRelease(releaseClientId,releaseSequenceNumber);
             }
         }

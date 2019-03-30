@@ -5,11 +5,10 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class Client {
 
@@ -18,14 +17,24 @@ public class Client {
     String port;
     List<Node> allClientNodes = new LinkedList<>();
     List<Node> allServerNodes = new LinkedList<>();
-    Integer logicalClock = 0;
-    List<SocketForClient> socketConnectionList = new LinkedList<>();
     List<SocketForClient> socketConnectionListServer = new LinkedList<>();
     ServerSocket server;
-    HashMap<String,SocketForClient> socketConnectionHashMap = new HashMap<>();
     HashMap<String,SocketForClient> socketConnectionHashMapServer = new HashMap<>();
-    HashMap<String,Boolean> clientPermissionRequired = new HashMap<>();
     List<List<String>> quorum = new LinkedList<>();
+    Integer genRequestDelay = 0;
+    Integer outStandingGrantCount = 0;
+    Integer currentQuorumIndex = 0;
+    Boolean requestedCS = false;
+
+    public void setGenRequestDelay(Integer genRequestDelay) {
+        this.genRequestDelay = genRequestDelay;
+    }
+
+
+    public Integer getGenRequestDelay() {
+        return genRequestDelay;
+    }
+
 
     public Client(String id) {
         this.Id = id;
@@ -55,13 +64,6 @@ public class Client {
         this.allServerNodes = allServerNodes;
     }
 
-    public Integer getLogicalClock() {
-        return logicalClock;
-    }
-
-    public void setLogicalClock(Integer logicalClock) {
-        this.logicalClock = logicalClock;
-    }
 
     /* Command Parser to look for input fom terminal once the client is running*/
     public class CommandParser extends Thread{
@@ -77,6 +79,7 @@ public class Client {
         Pattern REQUEST_TEST = Pattern.compile("^REQUEST_TEST$");
         Pattern RELEASE_TEST = Pattern.compile("^RELEASE_TEST$");
         Pattern SHOW_QUORUM_LIST = Pattern.compile("^SHOW_QUORUM_LIST$");
+        Pattern AUTO_REQUEST = Pattern.compile("^AUTO_REQUEST$");
 
         int rx_cmd(Scanner cmd){
             String cmd_in = null;
@@ -85,8 +88,10 @@ public class Client {
             Matcher m_STATUS = STATUS.matcher(cmd_in);
             Matcher m_SERVER_TEST = SERVER_TEST.matcher(cmd_in);
             Matcher m_REQUEST_TEST = REQUEST_TEST.matcher(cmd_in);
-            Matcher m_RLEASE_TEST = RELEASE_TEST.matcher(cmd_in);
+            Matcher m_RELEASE_TEST = RELEASE_TEST.matcher(cmd_in);
             Matcher m_SHOW_QUORUM_LIST = SHOW_QUORUM_LIST.matcher(cmd_in);
+            Matcher m_AUTO_REQUEST = AUTO_REQUEST.matcher(cmd_in);
+
             if(m_STATUS.find()){
                 System.out.println("CLIENT SOCKET STATUS:");
                 try {
@@ -109,13 +114,18 @@ public class Client {
                 sendRequestTest();
             }
 
-            else if(m_RLEASE_TEST.find()){
+            else if(m_RELEASE_TEST.find()){
                 sendReleaseTest();
             }
 
             else if(m_SHOW_QUORUM_LIST.find()){
                 printQuorumList();
             }
+
+            else if(m_AUTO_REQUEST.find()){
+                autoRequest();
+            }
+
             return 1;
         }
 
@@ -148,7 +158,65 @@ public class Client {
 
     public synchronized void processGrant(String serverSendingGrant){
         System.out.println("Inside process grant for server ID "+ serverSendingGrant);
+        this.outStandingGrantCount -= 1;
+        if(this.outStandingGrantCount == 0){
+            this.enterCriticalSection();
+        }
 
+    }
+
+    public void autoRequest(){
+        Thread sendAuto = new Thread(){
+            public void run(){
+                try {
+                    while(true) {
+                        System.out.println("Auto - Generating request - Client has set delay of: " + genRequestDelay );
+                        Thread.sleep(genRequestDelay * 2);
+                        if(!requestedCS) {sendRequest();}
+                    }
+                }
+                catch (Exception e){}
+            }
+        };
+        sendAuto.setDaemon(true); 	// terminate when main ends
+        sendAuto.start();
+    }
+
+
+    public void sendRequest(){
+        this.requestedCS = true;
+        int randomNum = ThreadLocalRandom.current().nextInt(0, quorum.size() + 1);
+        System.out.println("Chosen random number: " + randomNum + " but choosing index 0 for test purpose");
+        List<String> quorumMembers = quorum.get(0);
+        this.currentQuorumIndex = 0;
+        Integer quorumMemberId ;
+        this.outStandingGrantCount = quorumMembers.size();
+        for(quorumMemberId = 0; quorumMemberId < quorumMembers.size(); quorumMemberId++){
+            socketConnectionHashMapServer.get(quorumMembers.get(quorumMemberId)).sendRequest();
+        }
+
+
+    }
+
+    public synchronized void enterCriticalSection(){
+        System.out.println("******************In the critical section wait for three seconds******************");
+        try {
+            TimeUnit.MILLISECONDS.sleep(3000);
+            System.out.println("******************Ending critical section wait for three seconds******************");
+            this.releaseCriticalSection();
+        }
+        catch (Exception e){}
+
+    }
+
+    public synchronized void releaseCriticalSection(){
+        System.out.println("******************SENDING RELEASE MESSAGE TO THE QUORUM******************");
+        List<String> quorumMembers = quorum.get(this.currentQuorumIndex);
+        Integer quorumMemberId ;
+        for(quorumMemberId = 0; quorumMemberId < quorumMembers.size(); quorumMemberId++){
+            socketConnectionHashMapServer.get(quorumMembers.get(quorumMemberId)).sendRelease();
+        }
+        this.requestedCS = false;
     }
 
     /*Helps establish the socket connection to all the servers available*/
@@ -180,7 +248,7 @@ public class Client {
             Id = Integer.toString(ClientId);
             ipAddress = this.allClientNodes.get(ClientId).getIpAddress();
             port = this.allClientNodes.get(ClientId).getPort();
-            System.out.println("Client node running on port " + Integer.valueOf(this.allClientNodes.get(ClientId).port) +"," + " use ctrl-C to end");
+            System.out.println("Client node running on port ****" + Integer.valueOf(this.allClientNodes.get(ClientId).port) +"," + "*** use ctrl-C to end");
             InetAddress myip = InetAddress.getLocalHost();
             String ip = myip.getHostAddress();
             String hostname = myip.getHostName();
@@ -195,24 +263,6 @@ public class Client {
 
         CommandParser cmdpsr = new CommandParser(current);
         cmdpsr.start();
-
-        Thread current_node = new Thread() {
-            public void run(){
-                while(true){
-                    try{
-                        Socket s = server.accept();
-                        SocketForClient socketConnection = new SocketForClient(s,Id, current);
-                        socketConnectionList.add(socketConnection);
-                        socketConnectionHashMap.put(socketConnection.getRemote_id(),socketConnection);
-                        clientPermissionRequired.put(socketConnection.getRemote_id(),true);
-                    }
-                    catch(IOException e){ e.printStackTrace(); }
-                }
-            }
-        };
-
-        current_node.setDaemon(true);
-        current_node.start();
     }
 
 
@@ -313,9 +363,9 @@ public class Client {
 
     public static void main(String[] args) {
 
-        if (args.length != 1)
+        if (args.length != 2)
         {
-            System.out.println("Usage: java Client <client-number>");
+            System.out.println("Usage: java Client <client-number> <request-delay>");
             System.exit(1);
         }
 
@@ -327,6 +377,7 @@ public class Client {
         C1.setServerList();
         C1.setupServerConnection(C1);
         C1.clientSocket(Integer.valueOf(args[0]),C1);
+        C1.setGenRequestDelay(Integer.valueOf(args[1]));
         C1.setQuorumList();
         System.out.println("Started Client with ID: " + C1.getId());
     }
