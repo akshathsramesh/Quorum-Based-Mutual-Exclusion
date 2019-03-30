@@ -1,6 +1,4 @@
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -213,6 +211,16 @@ public class Client {
     public synchronized void enterCriticalSection(){
         System.out.println("******************In the critical section wait for three seconds******************");
         try {
+            try {
+                System.out.println();
+                BufferedWriter writer = new BufferedWriter(new FileWriter("critical_section_log.txt", true));
+                Date date = new Date();
+                writer.append( this.getId()+" Client used critical section at timestamp -> "+ date.getTime());
+                writer.close();
+            }
+            catch (Exception e){
+                System.out.println("STATUS FILE WRITE ERROR");
+            }
             TimeUnit.MILLISECONDS.sleep(3000);
             System.out.println("******************Ending critical section wait for three seconds******************");
             this.releaseCriticalSection();
