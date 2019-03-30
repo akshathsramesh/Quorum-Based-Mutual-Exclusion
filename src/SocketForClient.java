@@ -14,6 +14,7 @@ public class SocketForClient {
     PrintWriter out;
     Boolean Initiator;
     Client my_master;
+    String numberOfClients;
 
     public String getRemote_id() {
         return remote_id;
@@ -23,10 +24,11 @@ public class SocketForClient {
         this.remote_id = remote_id;
     }
 
-    public SocketForClient(Socket otherClient, String myId, Client my_master) {
+    public SocketForClient(Socket otherClient, String myId, Client my_master, String numberOfClients) {
         this.otherClient = otherClient;
         this.my_id = myId;
         this.my_master = my_master;
+        this.numberOfClients = numberOfClients;
         try{
             in = new BufferedReader(new InputStreamReader(this.otherClient.getInputStream()));
             out = new PrintWriter(this.otherClient.getOutputStream(), true);
@@ -50,6 +52,7 @@ public class SocketForClient {
 
             if(cmd_in.equals("SEND_CLIENT_ID")){
                 out.println(this.my_id);
+                out.println(this.numberOfClients);
             }
 
             else if(cmd_in.equals("CLIENT_TEST")){
@@ -60,6 +63,10 @@ public class SocketForClient {
                 String serverSendingGrant = cmd.readLine();
                 System.out.println("GRANT received from server " + serverSendingGrant);
                 my_master.processGrant(serverSendingGrant);
+            }
+
+            else if(cmd_in.equals("PUSH_SERVER_STATS")){
+                my_master.pushServerStats();
             }
 
         }
@@ -97,6 +104,16 @@ public class SocketForClient {
         out.println("0");
     }
 
+
+    public synchronized void sendStats(String note){
+        out.println("CLIENT_STATS");
+        out.println(my_id);
+        out.println(note);
+    }
+
+    public synchronized void pushServerStats(){
+        out.println("SERVER_STATS");
+    }
     public Socket getOtherClient() {
         return otherClient;
     }

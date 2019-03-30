@@ -25,6 +25,11 @@ public class Client {
     Integer outStandingGrantCount = 0;
     Integer currentQuorumIndex = 0;
     Boolean requestedCS = false;
+    Integer requestMessageCounter = 0;
+    Integer releaseMessageCounter = 0;
+    Integer grantMessageCouter = 0;
+    Integer requestCounter = 0;
+
 
     public void setGenRequestDelay(Integer genRequestDelay) {
         this.genRequestDelay = genRequestDelay;
@@ -158,6 +163,7 @@ public class Client {
 
     public synchronized void processGrant(String serverSendingGrant){
         System.out.println("Inside process grant for server ID "+ serverSendingGrant);
+        this.grantMessageCouter+=1;
         this.outStandingGrantCount -= 1;
         if(this.outStandingGrantCount == 0){
             this.enterCriticalSection();
@@ -170,9 +176,13 @@ public class Client {
             public void run(){
                 try {
                     while(true) {
-                        System.out.println("Auto - Generating request - Client has set delay of: " + genRequestDelay );
-                        Thread.sleep(genRequestDelay * 2);
-                        if(!requestedCS) {sendRequest();}
+                        if(requestCounter < 20) {
+                            System.out.println("Auto - Generating request - Client has set delay of: " + genRequestDelay);
+                            Thread.sleep(genRequestDelay);
+                            if (!requestedCS) {
+                                sendRequest();
+                            }
+                        }
                     }
                 }
                 catch (Exception e){}
@@ -185,6 +195,7 @@ public class Client {
 
     public void sendRequest(){
         this.requestedCS = true;
+        this.requestCounter+=1;
         int randomNum = ThreadLocalRandom.current().nextInt(0, quorum.size() + 1);
         System.out.println("Chosen random number: " + randomNum + " but choosing index 0 for test purpose");
         List<String> quorumMembers = quorum.get(0);
@@ -193,6 +204,7 @@ public class Client {
         this.outStandingGrantCount = quorumMembers.size();
         for(quorumMemberId = 0; quorumMemberId < quorumMembers.size(); quorumMemberId++){
             socketConnectionHashMapServer.get(quorumMembers.get(quorumMemberId)).sendRequest();
+            this.requestMessageCounter+=1;
         }
 
 
@@ -215,10 +227,26 @@ public class Client {
         Integer quorumMemberId ;
         for(quorumMemberId = 0; quorumMemberId < quorumMembers.size(); quorumMemberId++){
             socketConnectionHashMapServer.get(quorumMembers.get(quorumMemberId)).sendRelease();
+            this.releaseMessageCounter+=1;
         }
         this.requestedCS = false;
+        if(this.requestCounter == 20){
+            sendStats();
+        }
     }
 
+    public synchronized void sendStats(){
+        socketConnectionHashMapServer.get("0").sendStats("Request Message Counter: " + this.requestMessageCounter
+                +" Release Message Counter: "+ this.releaseMessageCounter + " Grant Message Counter: " + this.grantMessageCouter);
+    }
+
+
+    public synchronized void pushServerStats(){
+        Integer serverId;
+        for(serverId = 0; serverId < socketConnectionListServer.size(); serverId ++){
+            socketConnectionListServer.get(serverId).pushServerStats();
+        }
+    }
     /*Helps establish the socket connection to all the servers available*/
     public void setupServerConnection(Client current){
         try{
@@ -226,7 +254,7 @@ public class Client {
             Integer serverId;
             for (serverId =0; serverId < allServerNodes.size(); serverId ++){
                 Socket serverConnection = new Socket(this.allServerNodes.get(serverId).getIpAddress(), Integer.valueOf(this.allServerNodes.get(serverId).getPort()));
-                SocketForClient socketConnectionServer = new SocketForClient(serverConnection,this.getId(),current);
+                SocketForClient socketConnectionServer = new SocketForClient(serverConnection,this.getId(),current,String.valueOf(this.getAllClientNodes().size()));
                 if(socketConnectionServer.getRemote_id() == null){
                     socketConnectionServer.setRemote_id(Integer.toString(serverId));
                 }
@@ -288,6 +316,7 @@ public class Client {
                 System.out.println("____________________________");
                 System.out.println("******** NUMBER OF CLIENTS:  "+ this.getAllClientNodes().size());
                 System.out.println("____________________________");
+
 
             } finally {
                 br.close();

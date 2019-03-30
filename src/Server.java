@@ -1,7 +1,4 @@
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -21,6 +18,16 @@ public class Server {
     PriorityQueue<RequestClient>  requestClientPriorityQueue = new PriorityQueue<>(new RequestComparator());
     Boolean locked = false;
     String lockForClient;
+    Integer numberOfClients = 0;
+    Integer currentReportCounter = 0;
+
+    public Integer getNumberOfClients() {
+        return numberOfClients;
+    }
+
+    public void setNumberOfClients(Integer numberOfClients) {
+        this.numberOfClients = numberOfClients;
+    }
 
     public List<Node> getAllServerNodes() {
         return allServerNodes;
@@ -53,6 +60,7 @@ public class Server {
                     System.out.println("SERVER ID: " + Id);
                     System.out.println("SERVER IP ADDRESS: " + ipAddress);
                     System.out.println("SERVER PORT: " + port);
+                    System.out.println("NUMBER OF CLIENTS IN SYSTEM: " + numberOfClients);
                 }
                 catch (Exception e){
                     System.out.println("SOMETHING WENT WRONG IN TERMINAL COMMAND PROCESSOR");
@@ -91,6 +99,26 @@ public class Server {
         }
     }
 
+    public synchronized void pushReportingClientMessage(String reportingClient, String reportingMessage){
+        this.currentReportCounter += 1;
+        try {
+            System.out.println(reportingClient+" Client Completed 20 CS Execution Pending Completion " + this.currentReportCounter + " out of " + this.numberOfClients );
+            BufferedWriter writer = new BufferedWriter(new FileWriter("stat.txt", true));
+            writer.append(reportingClient+" Client -> "+reportingMessage);
+            writer.close();
+        }
+        catch (Exception e){
+            System.out.println("STATUS FILE WRITE ERROR");
+        }
+        if(this.currentReportCounter == this.getNumberOfClients()){
+            System.out.println("++++++++++++++++++++++ ALL CLIENTS COMPLETED SIMULATION +++++++++++++++++++++++++++++");
+            serverSocketConnectionHashMap.get(0).pushServerStats();
+        }
+    }
+
+    public synchronized void logServerCounter(){
+
+    }
 
     public synchronized void processRelease(String releasingClientId, String requestSequenceNumber){
         System.out.println("Inside process RELEASE for Client: " + releasingClientId + " with sequence number " + requestSequenceNumber);
@@ -101,12 +129,15 @@ public class Server {
             } else {
                 System.out.println("The request queue was not empty");
                 System.out.println("Sending grant to " + requestClientPriorityQueue.peek().clientId + " which had time stamp of " + requestClientPriorityQueue.peek().timeStamp);
+                this.lockForClient = requestClientPriorityQueue.peek().clientId;
+                System.out.println("SET lock to client: " + this.lockForClient);
                 serverSocketConnectionHashMap.get(requestClientPriorityQueue.remove().clientId).sendGrant();
+
             }
         }
 
         else {
-            System.out.println("SERVER received release by Client it had not responded to");
+            System.out.println("$$$$ SERVER received release by Client it had not responded to");
         }
     }
 
