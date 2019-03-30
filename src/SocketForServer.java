@@ -11,6 +11,7 @@ public class SocketForServer {
     PrintWriter out;
     Boolean Initiator;
     Server my_master;
+    String numberOfClients;
 
     public String getRemote_id() {
         return remote_id;
@@ -37,6 +38,10 @@ public class SocketForServer {
                 out.println("SEND_CLIENT_ID");
                 System.out.println("SEND_CLIENT_ID request sent");
                 remote_id = in.readLine();
+                numberOfClients = in .readLine();
+                if(my_master.getNumberOfClients() == 0){
+                    my_master.setNumberOfClients(Integer.valueOf(numberOfClients));
+                }
                 System.out.println("SEND_CLIENT_ID request response received with ID: " + remote_id);
             }
         }
@@ -74,6 +79,16 @@ public class SocketForServer {
                 System.out.println("Received RELEASE from client " + releaseClientId + "which had the sequence number: " + releaseSequenceNumber );
                 my_master.processRelease(releaseClientId,releaseSequenceNumber);
             }
+
+            else if(cmd_in.equals("CLIENT_STATS")){
+                String reportingClientId = cmd.readLine();
+                String reportingClientMessage = cmd.readLine();
+                my_master.pushReportingClientMessage(reportingClientId,reportingClientMessage);
+            }
+
+            else if(cmd_in.equals("SERVER_STATS")){
+                my_master.logServerCounter();
+            }
         }
         catch (Exception e){}
         return 1;
@@ -87,6 +102,10 @@ public class SocketForServer {
     public synchronized void sendGrant(){
         out.println("GRANT");
         out.println(my_id);
+    }
+
+    public synchronized void pushServerStats(){
+        out.println("PUSH_SERVER_STATS");
     }
 
     public Socket getOtherClient() {
