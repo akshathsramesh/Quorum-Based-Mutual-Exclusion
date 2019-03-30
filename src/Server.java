@@ -18,8 +18,9 @@ public class Server {
     String port;
     String ipAddress;
     HashMap<String,SocketForServer> serverSocketConnectionHashMap = new HashMap<>();
-
-
+    PriorityQueue<RequestClient>  requestClientPriorityQueue = new PriorityQueue<>(new RequestComparator());
+    Boolean locked = false;
+    String lockForClient;
 
     public List<Node> getAllServerNodes() {
         return allServerNodes;
@@ -77,14 +78,36 @@ public class Server {
     }
 
 
-    public synchronized void processRequest(String requestingClientId, String requestSequenceNumber){
-        System.out.println("Inside process request for Client: " + requestingClientId + " with sequence number " + requestSequenceNumber);
-        serverSocketConnectionHashMap.get(requestingClientId).sendGrant();
+    public synchronized void processRequest(String requestingClientId, String requestTimeStamp){
+        System.out.println("Inside process request for Client: " + requestingClientId + " with sequence number " + requestTimeStamp);
+        if(!locked) {
+            this.locked = true;
+            this.lockForClient = requestingClientId;
+            serverSocketConnectionHashMap.get(requestingClientId).sendGrant();
+        }
+        else if(locked){
+            System.out.println("Server in locked state --- Adding to priority queue");
+            requestClientPriorityQueue.add(new RequestClient(requestingClientId, Long.valueOf(requestTimeStamp)));
+        }
     }
 
 
     public synchronized void processRelease(String releasingClientId, String requestSequenceNumber){
-        System.out.println("Inside process request for Client: " + releasingClientId + " with sequence number " + requestSequenceNumber);
+        System.out.println("Inside process RELEASE for Client: " + releasingClientId + " with sequence number " + requestSequenceNumber);
+        if(this.lockForClient.equals(releasingClientId)) {
+            if (requestClientPriorityQueue.isEmpty()) {
+                System.out.println("The server is locked status for client " + this.lockForClient);
+                this.locked = false;
+            } else {
+                System.out.println("The request queue was not empty");
+                System.out.println("Sending grant to " + requestClientPriorityQueue.peek().clientId + " which had time stamp of " + requestClientPriorityQueue.peek().timeStamp);
+                serverSocketConnectionHashMap.get(requestClientPriorityQueue.remove().clientId).sendGrant();
+            }
+        }
+
+        else {
+            System.out.println("SERVER received release by Client it had not responded to");
+        }
     }
 
 

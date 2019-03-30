@@ -2,6 +2,8 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.Date;
+
 
 public class SocketForClient {
 
@@ -81,6 +83,20 @@ public class SocketForClient {
         out.println(this.my_id);
         out.println("0");
     }
+
+    public synchronized void sendRequest(){
+        out.println("REQUEST");
+        out.println(this.my_id);
+        Date date = new Date();
+        out.println(date.getTime());
+    }
+
+    public synchronized void sendRelease(){
+        out.println("RELEASE");
+        out.println(this.my_id);
+        out.println("0");
+    }
+
     public Socket getOtherClient() {
         return otherClient;
     }
