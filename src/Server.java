@@ -125,7 +125,7 @@ public class Server {
         }
         if(this.currentReportCounter == this.getNumberOfClients()){
             System.out.println("++++++++++++++++++++++ ALL CLIENTS COMPLETED SIMULATION +++++++++++++++++++++++++++++");
-            serverSocketConnectionHashMap.get(0).pushServerStats();
+            serverSocketConnectionHashMap.get("0").pushServerStats();
         }
     }
 
