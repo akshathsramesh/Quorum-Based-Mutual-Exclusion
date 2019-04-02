@@ -101,7 +101,7 @@ public class Server {
         }
 
         public void run() {
-            System.out.println("Enter commands to set-up MESH Connection : START");
+            System.out.println("Enter commands to set-up MESH Connection : TRIGGER");
             Scanner input = new Scanner(System.in);
             while(rx_cmd(input) != 0) { }
         }

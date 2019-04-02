@@ -28,6 +28,9 @@ public class Client {
     Integer grantMessageCounter = 0;
     Integer requestCounter = 0;
     Integer simulationCount = 1;
+    Long requestTimeStamp;
+    Long criticalSectionTimeStamp;
+
 
     public void setGenRequestDelay(Integer genRequestDelay) {
         this.genRequestDelay = genRequestDelay;
@@ -181,10 +184,19 @@ public class Client {
                                 System.out.println("REQUESTING CS");
                                 sendRequest();
                             }
+                            else {
+                                System.out.println(" REQUESTED CS WAITING");
+                            }
+                        }
+                        else {
+                            System.out.println("COMPLETED SIMULATION");
+                            Thread.sleep(5000);
                         }
                     }
                 }
-                catch (Exception e){}
+                catch (Exception e){
+                    System.out.println("AUTO GENERATE EXCEPTION" + e);
+                }
             }
         };
         sendAuto.setDaemon(true); 	// terminate when main ends
@@ -192,11 +204,14 @@ public class Client {
     }
 
     public synchronized void processRestartTrigger(){
+        System.out.println("Process Restart Trigger");
         this.requestedCS = false;
     }
 
     public void sendRequest(){
         this.requestedCS = true;
+        Date date = new Date();
+        this.requestTimeStamp = date.getTime();
         this.requestCounter+=1;
         int randomNum = ThreadLocalRandom.current().nextInt(0, quorum.size());
         System.out.println("Chosen random number: " + randomNum );
@@ -220,14 +235,14 @@ public class Client {
             try {
                 System.out.println();
                 BufferedWriter writer = new BufferedWriter(new FileWriter("critical_section_log.txt", true));
-                Date date = new Date();
-                writer.append( this.getId()+" Client used critical section at timestamp -> "+ date.getTime()+"\n");
+                Date dateCS = new Date();
+                writer.append( this.getId()+" Client used critical section at timestamp -> "+ dateCS.getTime()+" : Time elapsed: " + (dateCS.getTime() - this.requestTimeStamp) +"\n");
                 writer.close();
             }
             catch (Exception e){
                 System.out.println("STATUS FILE WRITE ERROR");
             }
-            TimeUnit.MILLISECONDS.sleep(30);
+            TimeUnit.MILLISECONDS.sleep(3);
             this.releaseCriticalSection();
         }
         catch (Exception e){}
@@ -257,6 +272,7 @@ public class Client {
     
     public synchronized void clearClient(){
         try {
+            if(this.getId().equals("0")) {
             this.simulationCount += 1;
             BufferedWriter writercs = new BufferedWriter(new FileWriter("critical_section_log.txt", true));
             writercs.append( "************* SIMULATION COUNT:" + this.simulationCount +" *************" +"\n");
@@ -264,6 +280,7 @@ public class Client {
             BufferedWriter writerst = new BufferedWriter(new FileWriter("stat.txt", true));
             writerst.append( "************* SIMULATION COUNT:" + this.simulationCount +" *************" +"\n");
             writerst.close();
+            }
         }
         catch (Exception e){
             System.out.println("STATUS FILE WRITE ERROR");
@@ -275,10 +292,13 @@ public class Client {
         this.releaseMessageCounter = 0;
         this.grantMessageCounter = 0;
         this.requestCounter = 0;
-        System.out.println("SEND SERVER RESTART");
+        this.requestedCS = true;
         Integer serverId;
-        for(serverId = 0; serverId < socketConnectionListServer.size(); serverId ++){
-            socketConnectionListServer.get(serverId).sendServerRestart();
+        if(this.getId().equals("0")) {
+            System.out.println("SEND SERVER RESTART");
+            for (serverId = 0; serverId < socketConnectionListServer.size(); serverId++) {
+                socketConnectionListServer.get(serverId).sendServerRestart();
+            }
         }
 
 
