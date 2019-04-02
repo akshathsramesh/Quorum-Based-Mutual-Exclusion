@@ -1,6 +1,4 @@
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -27,9 +25,9 @@ public class Client {
     Boolean requestedCS = false;
     Integer requestMessageCounter = 0;
     Integer releaseMessageCounter = 0;
-    Integer grantMessageCouter = 0;
+    Integer grantMessageCounter = 0;
     Integer requestCounter = 0;
-
+    Integer simulationCount = 1;
 
     public void setGenRequestDelay(Integer genRequestDelay) {
         this.genRequestDelay = genRequestDelay;
@@ -163,7 +161,7 @@ public class Client {
 
     public synchronized void processGrant(String serverSendingGrant){
         System.out.println("Inside process grant for server ID "+ serverSendingGrant);
-        this.grantMessageCouter+=1;
+        this.grantMessageCounter+=1;
         this.outStandingGrantCount -= 1;
         if(this.outStandingGrantCount == 0){
             this.enterCriticalSection();
@@ -177,9 +175,10 @@ public class Client {
                 try {
                     while(true) {
                         if(requestCounter < 20) {
-                            System.out.println("Auto - Generating request - Client has set delay of: " + genRequestDelay);
+//                          System.out.println("Auto - Generating request - Client has set delay of: " + genRequestDelay);
                             Thread.sleep(genRequestDelay);
                             if (!requestedCS) {
+                                System.out.println("REQUESTING CS");
                                 sendRequest();
                             }
                         }
@@ -192,14 +191,19 @@ public class Client {
         sendAuto.start();
     }
 
+    public synchronized void processRestartTrigger(){
+        this.requestedCS = false;
+    }
 
     public void sendRequest(){
         this.requestedCS = true;
         this.requestCounter+=1;
-        int randomNum = ThreadLocalRandom.current().nextInt(0, quorum.size() + 1);
-        System.out.println("Chosen random number: " + randomNum + " but choosing index 0 for test purpose");
-        List<String> quorumMembers = quorum.get(0);
-        this.currentQuorumIndex = 0;
+        int randomNum = ThreadLocalRandom.current().nextInt(0, quorum.size());
+        System.out.println("Chosen random number: " + randomNum );
+//        List<String> quorumMembers = quorum.get(0);
+//        this.currentQuorumIndex = 0;
+        List<String> quorumMembers = quorum.get(randomNum);
+        this.currentQuorumIndex = randomNum;
         Integer quorumMemberId ;
         this.outStandingGrantCount = quorumMembers.size();
         for(quorumMemberId = 0; quorumMemberId < quorumMembers.size(); quorumMemberId++){
@@ -213,8 +217,17 @@ public class Client {
     public synchronized void enterCriticalSection(){
         System.out.println("******************In the critical section wait for three seconds******************");
         try {
-            TimeUnit.MILLISECONDS.sleep(3000);
-            System.out.println("******************Ending critical section wait for three seconds******************");
+            try {
+                System.out.println();
+                BufferedWriter writer = new BufferedWriter(new FileWriter("critical_section_log.txt", true));
+                Date date = new Date();
+                writer.append( this.getId()+" Client used critical section at timestamp -> "+ date.getTime()+"\n");
+                writer.close();
+            }
+            catch (Exception e){
+                System.out.println("STATUS FILE WRITE ERROR");
+            }
+            TimeUnit.MILLISECONDS.sleep(30);
             this.releaseCriticalSection();
         }
         catch (Exception e){}
@@ -233,15 +246,46 @@ public class Client {
         if(this.requestCounter == 20){
             sendStats();
         }
+        System.out.println("******************EXITING RELEASE ******************");
     }
 
     public synchronized void sendStats(){
         socketConnectionHashMapServer.get("0").sendStats("Request Message Counter: " + this.requestMessageCounter
-                +" Release Message Counter: "+ this.releaseMessageCounter + " Grant Message Counter: " + this.grantMessageCouter);
+                +" Release Message Counter: "+ this.releaseMessageCounter + " Grant Message Counter: " + this.grantMessageCounter);
+    }
+    
+    
+    public synchronized void clearClient(){
+        try {
+            this.simulationCount += 1;
+            BufferedWriter writercs = new BufferedWriter(new FileWriter("critical_section_log.txt", true));
+            writercs.append( "************* SIMULATION COUNT:" + this.simulationCount +" *************" +"\n");
+            writercs.close();
+            BufferedWriter writerst = new BufferedWriter(new FileWriter("stat.txt", true));
+            writerst.append( "************* SIMULATION COUNT:" + this.simulationCount +" *************" +"\n");
+            writerst.close();
+        }
+        catch (Exception e){
+            System.out.println("STATUS FILE WRITE ERROR");
+        }
+
+        this.outStandingGrantCount = 0;
+        this.currentQuorumIndex = 0;
+        this.requestMessageCounter = 0;
+        this.releaseMessageCounter = 0;
+        this.grantMessageCounter = 0;
+        this.requestCounter = 0;
+        System.out.println("SEND SERVER RESTART");
+        Integer serverId;
+        for(serverId = 0; serverId < socketConnectionListServer.size(); serverId ++){
+            socketConnectionListServer.get(serverId).sendServerRestart();
+        }
+
+
     }
 
-
     public synchronized void pushServerStats(){
+        System.out.println("SEND PUSH SERVER STATS TO ALL SERVERS");
         Integer serverId;
         for(serverId = 0; serverId < socketConnectionListServer.size(); serverId ++){
             socketConnectionListServer.get(serverId).pushServerStats();

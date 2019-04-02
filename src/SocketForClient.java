@@ -69,6 +69,21 @@ public class SocketForClient {
                 my_master.pushServerStats();
             }
 
+            else if(cmd_in.equals("TRIGGER")){
+                System.out.println("RECEIVED TRIGGER FROM SERVER ");
+                my_master.autoRequest();
+            }
+
+            else if(cmd_in.equals("RESTART_CLIENT")){
+                System.out.println("RESET CLIENT RECEIVED");
+                my_master.clearClient();
+            }
+
+            else if(cmd_in.equals("RESTART_TRIGGER")){
+                System.out.println("**************** CLIENT RESTART TRIGGER RECEIVED ************************************");
+                my_master.processRestartTrigger();
+            }
+
         }
         catch (Exception e){}
         return 1;
@@ -113,6 +128,10 @@ public class SocketForClient {
 
     public synchronized void pushServerStats(){
         out.println("SERVER_STATS");
+    }
+
+    public synchronized void sendServerRestart(){
+        out.println("RESTART_SERVER");
     }
     public Socket getOtherClient() {
         return otherClient;
