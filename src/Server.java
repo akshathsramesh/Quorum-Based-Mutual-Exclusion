@@ -20,6 +20,9 @@ public class Server {
     String lockForClient;
     Integer numberOfClients = 0;
     Integer currentReportCounter = 0;
+    Integer releaseMessageCounter = 0;
+    Integer grantMessageCounter = 0;
+    Integer requestMessageCounter = 0;
 
     public Integer getNumberOfClients() {
         return numberOfClients;
@@ -45,6 +48,8 @@ public class Server {
         Pattern CLIENT_TEST = Pattern.compile("^CLIENT_TEST$");
         Pattern TEST_GRANT = Pattern.compile("^TEST_GRANT$");
         Pattern TRIGGER = Pattern.compile("^TRIGGER$");
+        Pattern RESTART = Pattern.compile("^RESTART$");
+        Pattern RESTART_TRIGGER = Pattern.compile("^RESTART_TRIGGER$");
 
         int rx_cmd(Scanner cmd){
             String cmd_in = null;
@@ -54,6 +59,8 @@ public class Server {
             Matcher m_CLIENT_TEST = CLIENT_TEST.matcher(cmd_in);
             Matcher m_TEST_GRANT = TEST_GRANT.matcher(cmd_in);
             Matcher m_TRIGGER = TRIGGER.matcher(cmd_in);
+            Matcher m_RESTART = RESTART.matcher(cmd_in);
+            Matcher m_RESTART_TRIGGER = RESTART_TRIGGER.matcher(cmd_in);
 
             if(m_STATUS.find()){
                 System.out.println("SERVER SOCKET STATUS:");
@@ -80,6 +87,16 @@ public class Server {
             else if(m_TRIGGER.find()){
                 sendTriggerToClient();
             }
+
+            else if(m_RESTART.find()){
+                clearAllClient();
+            }
+
+            else if(m_RESTART_TRIGGER.find()){
+                sendRestartTriggerToClient();
+            }
+
+
             return 1;
         }
 
@@ -90,6 +107,25 @@ public class Server {
         }
     }
 
+    public void clearAllClient(){
+        System.out.println("CLEAR ALL CLIENTS");
+        Integer ClientId;
+        for(ClientId=0; ClientId < serverSocketConnectionList.size() ; ClientId++){
+            serverSocketConnectionHashMap.get(ClientId.toString()).sendRestart();
+        }
+
+    }
+
+    public void clearAllRunAgain(){
+        System.out.println("SERVER RESET");
+        requestClientPriorityQueue.clear();
+        this.locked = false;
+        this.currentReportCounter = 0;
+        this.releaseMessageCounter = 0;
+        this.grantMessageCounter = 0;
+        this.requestMessageCounter = 0;
+
+    }
 
     public synchronized void sendTriggerToClient(){
         System.out.println("Sending TRIGGER TO CLIENT");
@@ -99,15 +135,26 @@ public class Server {
         }
     }
 
+    public synchronized void sendRestartTriggerToClient(){
+        System.out.println("Sending TRIGGER TO CLIENT");
+        Integer ClientId;
+        for(ClientId=0; ClientId < serverSocketConnectionList.size() ; ClientId++){
+            serverSocketConnectionHashMap.get(ClientId.toString()).sendRestartTrigger();
+        }
+    }
+
     public synchronized void processRequest(String requestingClientId, String requestTimeStamp){
         System.out.println("Inside process request for Client: " + requestingClientId + " with sequence number " + requestTimeStamp);
         if(!locked) {
+            this.requestMessageCounter +=1;
             this.locked = true;
             this.lockForClient = requestingClientId;
             serverSocketConnectionHashMap.get(requestingClientId).sendGrant();
+            this.grantMessageCounter +=1;
         }
         else if(locked){
             System.out.println("Server in locked state --- Adding to priority queue");
+            this.requestMessageCounter +=1;
             requestClientPriorityQueue.add(new RequestClient(requestingClientId, Long.valueOf(requestTimeStamp)));
         }
     }
@@ -131,10 +178,20 @@ public class Server {
 
     public synchronized void logServerCounter(){
         System.out.println("LOG SERVER COUNTERS -------------------- END OF SIMULATION");
+        try{
+        BufferedWriter writer = new BufferedWriter(new FileWriter("stat.txt", true));
+        String reportingMessage = "Request Message counter: " + this.requestMessageCounter + " Release Message Counter: " + this.releaseMessageCounter + " Grant Message Counter: " + this.grantMessageCounter;
+        writer.append(this.Id +" Server -> "+reportingMessage+"\n");
+        writer.close();
+        }
+        catch(Exception e){
+            System.out.println("Exception while pushing server stats: " + e);
+        }
 
     }
 
     public synchronized void processRelease(String releasingClientId, String requestSequenceNumber){
+        this.releaseMessageCounter +=1;
         System.out.println("Inside process RELEASE for Client: " + releasingClientId + " with sequence number " + requestSequenceNumber);
         if(this.lockForClient.equals(releasingClientId)) {
             if (requestClientPriorityQueue.isEmpty()) {
@@ -146,6 +203,7 @@ public class Server {
                 this.lockForClient = requestClientPriorityQueue.peek().clientId;
                 System.out.println("SET lock to client: " + this.lockForClient);
                 serverSocketConnectionHashMap.get(requestClientPriorityQueue.remove().clientId).sendGrant();
+                this.grantMessageCounter +=1;
 
             }
         }

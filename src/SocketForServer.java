@@ -90,6 +90,10 @@ public class SocketForServer {
                 System.out.println("Server received push server stats");
                 my_master.logServerCounter();
             }
+
+            else if(cmd_in.equals("RESTART_SERVER")){
+                my_master.clearAllRunAgain();
+            }
         }
         catch (Exception e){}
         return 1;
@@ -110,10 +114,19 @@ public class SocketForServer {
         out.println("PUSH_SERVER_STATS");
     }
 
+    public synchronized void sendRestart(){
+        System.out.println("SENDING RESTART TO ALL CLIENT ");
+        out.println("RESTART_CLIENT");
+    }
 
     public synchronized void sendTrigger(){
         out.println("TRIGGER");
     }
+
+    public synchronized void sendRestartTrigger(){
+        out.println("RESTART_TRIGGER");
+    }
+
     public Socket getOtherClient() {
         return otherClient;
     }

@@ -25,9 +25,9 @@ public class Client {
     Boolean requestedCS = false;
     Integer requestMessageCounter = 0;
     Integer releaseMessageCounter = 0;
-    Integer grantMessageCouter = 0;
+    Integer grantMessageCounter = 0;
     Integer requestCounter = 0;
-
+    Integer simulationCount = 1;
 
     public void setGenRequestDelay(Integer genRequestDelay) {
         this.genRequestDelay = genRequestDelay;
@@ -161,7 +161,7 @@ public class Client {
 
     public synchronized void processGrant(String serverSendingGrant){
         System.out.println("Inside process grant for server ID "+ serverSendingGrant);
-        this.grantMessageCouter+=1;
+        this.grantMessageCounter+=1;
         this.outStandingGrantCount -= 1;
         if(this.outStandingGrantCount == 0){
             this.enterCriticalSection();
@@ -191,6 +191,9 @@ public class Client {
         sendAuto.start();
     }
 
+    public synchronized void processRestartTrigger(){
+        this.requestedCS = false;
+    }
 
     public void sendRequest(){
         this.requestedCS = true;
@@ -248,9 +251,38 @@ public class Client {
 
     public synchronized void sendStats(){
         socketConnectionHashMapServer.get("0").sendStats("Request Message Counter: " + this.requestMessageCounter
-                +" Release Message Counter: "+ this.releaseMessageCounter + " Grant Message Counter: " + this.grantMessageCouter);
+                +" Release Message Counter: "+ this.releaseMessageCounter + " Grant Message Counter: " + this.grantMessageCounter);
     }
+    
+    
+    public synchronized void clearClient(){
+        try {
+            this.simulationCount += 1;
+            BufferedWriter writercs = new BufferedWriter(new FileWriter("critical_section_log.txt", true));
+            writercs.append( "************* SIMULATION COUNT:" + this.simulationCount +" *************" +"\n");
+            writercs.close();
+            BufferedWriter writerst = new BufferedWriter(new FileWriter("stat.txt", true));
+            writerst.append( "************* SIMULATION COUNT:" + this.simulationCount +" *************" +"\n");
+            writerst.close();
+        }
+        catch (Exception e){
+            System.out.println("STATUS FILE WRITE ERROR");
+        }
 
+        this.outStandingGrantCount = 0;
+        this.currentQuorumIndex = 0;
+        this.requestMessageCounter = 0;
+        this.releaseMessageCounter = 0;
+        this.grantMessageCounter = 0;
+        this.requestCounter = 0;
+        System.out.println("SEND SERVER RESTART");
+        Integer serverId;
+        for(serverId = 0; serverId < socketConnectionListServer.size(); serverId ++){
+            socketConnectionListServer.get(serverId).sendServerRestart();
+        }
+
+
+    }
 
     public synchronized void pushServerStats(){
         System.out.println("SEND PUSH SERVER STATS TO ALL SERVERS");
