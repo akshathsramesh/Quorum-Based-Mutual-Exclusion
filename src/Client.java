@@ -86,6 +86,7 @@ public class Client {
         Pattern RELEASE_TEST = Pattern.compile("^RELEASE_TEST$");
         Pattern SHOW_QUORUM_LIST = Pattern.compile("^SHOW_QUORUM_LIST$");
         Pattern AUTO_REQUEST = Pattern.compile("^AUTO_REQUEST$");
+        Pattern SET_ELAPSE = Pattern.compile("^SET_ELAPSE$");
 
         int rx_cmd(Scanner cmd){
             String cmd_in = null;
@@ -97,6 +98,7 @@ public class Client {
             Matcher m_RELEASE_TEST = RELEASE_TEST.matcher(cmd_in);
             Matcher m_SHOW_QUORUM_LIST = SHOW_QUORUM_LIST.matcher(cmd_in);
             Matcher m_AUTO_REQUEST = AUTO_REQUEST.matcher(cmd_in);
+            Matcher m_SET_ELAPSE = SET_ELAPSE.matcher(cmd_in);
 
             if(m_STATUS.find()){
                 System.out.println("CLIENT SOCKET STATUS:");
@@ -105,6 +107,7 @@ public class Client {
                     System.out.println("CLIENT ID: " + Id);
                     System.out.println("CLIENT IP ADDRESS: " + ipAddress);
                     System.out.println("CLIENT PORT: " + port);
+                    System.out.println("GEN DELAY: " + genRequestDelay);
                 }
                 catch (Exception e){
                     System.out.println("SOMETHING WENT WRONG IN TERMINAL COMMAND PROCESSOR");
@@ -130,6 +133,18 @@ public class Client {
 
             else if(m_AUTO_REQUEST.find()){
                 autoRequest();
+            }
+
+            else if(m_SET_ELAPSE.find()){
+                int i =1;
+                while (i==1) {
+                    if (cmd.hasNext()) {
+                        String timeElapse = cmd.nextLine();
+                        System.out.println("Setting Time Elapse between request to: " + timeElapse);
+                        genRequestDelay = Integer.valueOf(timeElapse);
+                        i+=1;
+                    }
+                }
             }
 
             return 1;
@@ -190,7 +205,7 @@ public class Client {
                         }
                         else {
                             System.out.println("COMPLETED SIMULATION");
-                            Thread.sleep(5000);
+                            Thread.sleep(10000);
                         }
                     }
                 }
