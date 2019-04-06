@@ -3,6 +3,7 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -172,7 +173,13 @@ public class Server {
         }
         if(this.currentReportCounter == this.getNumberOfClients()){
             System.out.println("++++++++++++++++++++++ ALL CLIENTS COMPLETED SIMULATION +++++++++++++++++++++++++++++");
-            serverSocketConnectionHashMap.get("0").pushServerStats();
+            try {
+                TimeUnit.SECONDS.sleep(3);
+                serverSocketConnectionHashMap.get("0").pushServerStats();
+            }
+            catch(Exception e){
+                System.out.println("Error while waiting to push server stats");
+            }
         }
     }
 
