@@ -3,6 +3,8 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 
+
+/*Server socket connection handler class. This class is used to consume the connection buffer to send out message and redirect to functionality for received messages*/
 public class SocketForServer {
     Socket otherClient;
     String my_id;
