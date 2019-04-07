@@ -199,9 +199,9 @@ public class Client {
                                 System.out.println("REQUESTING CS");
                                 sendRequest();
                             }
-                            else {
-                                System.out.println(" REQUESTED CS WAITING");
-                            }
+//                            else {
+//                                System.out.println(" REQUESTED CS WAITING");
+//                            }
                         }
                         else {
                             System.out.println("COMPLETED SIMULATION");
@@ -323,9 +323,16 @@ public class Client {
         System.out.println("SEND PUSH SERVER STATS TO ALL SERVERS");
         Integer serverId;
         for(serverId = 0; serverId < socketConnectionListServer.size(); serverId ++){
-            socketConnectionListServer.get(serverId).pushServerStats();
+            try {
+                TimeUnit.SECONDS.sleep(1);
+                socketConnectionListServer.get(serverId).pushServerStats();
+            }
+            catch (Exception e){
+                System.out.println("Error while sleep of client sending push notification to server");
+            }
         }
     }
+
     /*Helps establish the socket connection to all the servers available*/
     public void setupServerConnection(Client current){
         try{

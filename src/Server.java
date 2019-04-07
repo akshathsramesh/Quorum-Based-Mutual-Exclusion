@@ -185,9 +185,10 @@ public class Server {
 
     public synchronized void logServerCounter(){
         System.out.println("LOG SERVER COUNTERS -------------------- END OF SIMULATION");
+        String reportingMessage = "Request Message counter: " + this.requestMessageCounter + " Release Message Counter: " + this.releaseMessageCounter + " Grant Message Counter: " + this.grantMessageCounter;
+        System.out.println(reportingMessage);
         try{
         BufferedWriter writer = new BufferedWriter(new FileWriter("stat.txt", true));
-        String reportingMessage = "Request Message counter: " + this.requestMessageCounter + " Release Message Counter: " + this.releaseMessageCounter + " Grant Message Counter: " + this.grantMessageCounter;
         writer.append(this.Id +" Server -> "+reportingMessage+"\n");
         writer.close();
         }
