@@ -44,7 +44,7 @@ public class Server {
         public CommandParser(Server currentServer){
             this.currentServer = currentServer;
         }
-
+        /*Command parser for server terminal */
         Pattern STATUS = Pattern.compile("^STATUS$");
         Pattern CLIENT_TEST = Pattern.compile("^CLIENT_TEST$");
         Pattern TEST_GRANT = Pattern.compile("^TEST_GRANT$");
@@ -108,6 +108,8 @@ public class Server {
         }
     }
 
+
+    /*Restart after deadlock functionality*/
     public void clearAllClient(){
         System.out.println("CLEAR ALL CLIENTS");
         Integer ClientId;
@@ -117,6 +119,7 @@ public class Server {
 
     }
 
+    /*Restart after deadlock functionality*/
     public void clearAllRunAgain(){
         System.out.println("SERVER RESET");
         requestClientPriorityQueue.clear();
@@ -128,6 +131,7 @@ public class Server {
 
     }
 
+    /*Functionality to trigger auto request in clients*/
     public synchronized void sendTriggerToClient(){
         System.out.println("Sending TRIGGER TO CLIENT");
         Integer ClientId;
@@ -136,6 +140,7 @@ public class Server {
         }
     }
 
+    /*Restart auto trigger after deadlock*/
     public synchronized void sendRestartTriggerToClient(){
         System.out.println("Sending TRIGGER TO CLIENT");
         Integer ClientId;
@@ -144,6 +149,7 @@ public class Server {
         }
     }
 
+    /*Method to process request sent out from client*/
     public synchronized void processRequest(String requestingClientId, String requestTimeStamp){
         System.out.println("Inside process request for Client: " + requestingClientId + " with sequence number " + requestTimeStamp);
         if(!locked) {
@@ -160,6 +166,7 @@ public class Server {
         }
     }
 
+    /*Writing the stats sent out from client to file*/
     public synchronized void pushReportingClientMessage(String reportingClient, String reportingMessage){
         this.currentReportCounter += 1;
         try {
@@ -183,6 +190,7 @@ public class Server {
         }
     }
 
+    /*Writing server stats to terminal and writing to file*/
     public synchronized void logServerCounter(){
         System.out.println("LOG SERVER COUNTERS -------------------- END OF SIMULATION");
         String reportingMessage = "Request Message counter: " + this.requestMessageCounter + " Release Message Counter: " + this.releaseMessageCounter + " Grant Message Counter: " + this.grantMessageCounter;
@@ -198,6 +206,7 @@ public class Server {
 
     }
 
+    /*functionality to process the release message sent out from a client*/
     public synchronized void processRelease(String releasingClientId, String requestSequenceNumber){
         this.releaseMessageCounter +=1;
         System.out.println("Inside process RELEASE for Client: " + releasingClientId + " with sequence number " + requestSequenceNumber);
@@ -221,7 +230,7 @@ public class Server {
         }
     }
 
-
+    /*Send client test message*/
     public void sendClientTest(){
         Integer clientId;
         for (clientId = 0; clientId < this.serverSocketConnectionList.size(); clientId++){
@@ -229,6 +238,7 @@ public class Server {
         }
     }
 
+    /*Test - sending grant message*/
     public void sendClientGrantTest(){
         Integer clientId;
         for (clientId = 0; clientId < this.serverSocketConnectionList.size(); clientId++){
@@ -236,6 +246,7 @@ public class Server {
         }
     }
 
+    /*reading server file and populating the list*/
     public void setServerList(){
         try {
             BufferedReader br = new BufferedReader(new FileReader("config_server.txt"));
@@ -265,7 +276,7 @@ public class Server {
 
 
 
-
+    /*Open a socket to list to connection request*/
     public void serverSocket(Integer serverId, Server currentServer){
         try
         {
@@ -319,8 +330,8 @@ public class Server {
 
         System.out.println("Starting the Server");
         Server server = new Server();
-        server.setServerList();
-        server.serverSocket(Integer.valueOf(args[0]),server);
+        server.setServerList();// set server list
+        server.serverSocket(Integer.valueOf(args[0]),server); // reserve a socket 
         System.out.println("Started the Server");
     }
 }
