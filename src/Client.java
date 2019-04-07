@@ -79,7 +79,7 @@ public class Client {
         public CommandParser(Client current){
             this.current = current;
         }
-
+        /*Pattern matching, command parsing from terminal*/
         Pattern STATUS = Pattern.compile("^STATUS$");
         Pattern SERVER_TEST = Pattern.compile("^SERVER_TEST$");
         Pattern REQUEST_TEST = Pattern.compile("^REQUEST_TEST$");
@@ -155,7 +155,7 @@ public class Client {
             while(rx_cmd(input) != 0) { }
         }
     }
-
+    /*Test to check Server connection */
     public void sendServerTest(){
         Integer serverId;
         for (serverId = 0; serverId < this.socketConnectionListServer.size(); serverId++){
@@ -163,6 +163,7 @@ public class Client {
         }
     }
 
+    /*Test functionality to send REQUEST message*/
     public void sendRequestTest(){
         Integer serverId;
         for (serverId = 0; serverId < this.socketConnectionListServer.size(); serverId++){
@@ -170,6 +171,7 @@ public class Client {
         }
     }
 
+    /*Test to send RELEASE message*/
     public void sendReleaseTest(){
         Integer serverId;
         for (serverId = 0; serverId < this.socketConnectionListServer.size(); serverId++){
@@ -177,22 +179,24 @@ public class Client {
         }
     }
 
+    /*Process grant message received from client*/
     public synchronized void processGrant(String serverSendingGrant){
         System.out.println("Inside process grant for server ID "+ serverSendingGrant);
         this.grantMessageCounter+=1;
         this.outStandingGrantCount -= 1;
         if(this.outStandingGrantCount == 0){
-            this.enterCriticalSection();
+            this.enterCriticalSection(); // once all the grant messages are received the client enters the critical section
         }
 
     }
 
+    /*Generates REQUEST every Request delay time lapse; Only if it has not already requested*/
     public void autoRequest(){
         Thread sendAuto = new Thread(){
             public void run(){
                 try {
                     while(true) {
-                        if(requestCounter < 20) {
+                        if(requestCounter < 20) { // Stop sending request after 20 simulation
 //                          System.out.println("Auto - Generating request - Client has set delay of: " + genRequestDelay);
                             Thread.sleep(genRequestDelay);
                             if (!requestedCS) {
@@ -204,7 +208,7 @@ public class Client {
 //                            }
                         }
                         else {
-                            System.out.println("COMPLETED SIMULATION");
+                            System.out.println("COMPLETED SIMULATION"); // On completing simulation
                             Thread.sleep(10000);
                         }
                     }
@@ -218,11 +222,13 @@ public class Client {
         sendAuto.start();
     }
 
+    /*Restart mechanism on entering deadlock*/
     public synchronized void processRestartTrigger(){
         System.out.println("Process Restart Trigger");
         this.requestedCS = false;
     }
 
+    /*Set necessary variable and send out request message*/
     public void sendRequest(){
         this.requestedCS = true;
         Date date = new Date();
@@ -244,6 +250,7 @@ public class Client {
 
     }
 
+    /*Write to file using critical section*/
     public synchronized void enterCriticalSection(){
         System.out.println("******************In the critical section wait for three seconds******************");
         try {
@@ -264,6 +271,7 @@ public class Client {
 
     }
 
+    /*varaiable reset after critical section use*/
     public synchronized void releaseCriticalSection(){
         System.out.println("******************SENDING RELEASE MESSAGE TO THE QUORUM******************");
         List<String> quorumMembers = quorum.get(this.currentQuorumIndex);
@@ -274,17 +282,18 @@ public class Client {
         }
         this.requestedCS = false;
         if(this.requestCounter == 20){
-            sendStats();
+            sendStats(); // after completing 20 request - send out the stats
         }
         System.out.println("******************EXITING RELEASE ******************");
     }
 
+    /*Send statts to sever 0*/
     public synchronized void sendStats(){
         socketConnectionHashMapServer.get("0").sendStats("Request Message Counter: " + this.requestMessageCounter
                 +" Release Message Counter: "+ this.releaseMessageCounter + " Grant Message Counter: " + this.grantMessageCounter);
     }
     
-    
+    /*Restart functionality after deadlock */
     public synchronized void clearClient(){
         try {
             if(this.getId().equals("0")) {
@@ -319,6 +328,7 @@ public class Client {
 
     }
 
+    /*After all Clients complete simulation Client 0 server connection will be used to push server stats */
     public synchronized void pushServerStats(){
         System.out.println("SEND PUSH SERVER STATS TO ALL SERVERS");
         Integer serverId;
@@ -444,7 +454,7 @@ public class Client {
 
     }
 
-
+    /*Used config quorum file to populate the list*/
     public void setQuorumList(){
         try {
             BufferedReader br = new BufferedReader(new FileReader("config_quorum.txt"));
@@ -487,13 +497,13 @@ public class Client {
 
         System.out.println("Starting the Client");
 
-        Client C1 = new Client(args[0]);
-        C1.setClientList();
-        C1.setServerList();
-        C1.setupServerConnection(C1);
-        C1.clientSocket(Integer.valueOf(args[0]),C1);
-        C1.setGenRequestDelay(Integer.valueOf(args[1]));
-        C1.setQuorumList();
+        Client C1 = new Client(args[0]); // Create Client instance
+        C1.setClientList(); //Reads from client file and adds it to list of clients
+        C1.setServerList(); // Reads from config_server file and adds it to list of server
+        C1.setupServerConnection(C1); // Used the method to establish TCP connection to serve
+        C1.clientSocket(Integer.valueOf(args[0]),C1); // Reserve socket with port number
+        C1.setGenRequestDelay(Integer.valueOf(args[1])); // set delay between two requests from same client
+        C1.setQuorumList(); // read from config quorum and set it to list of quorum
         System.out.println("Started Client with ID: " + C1.getId());
     }
 }
