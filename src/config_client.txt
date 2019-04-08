@@ -1,5 +1,5 @@
-0,localhost,45000
-1,localhost,45001
-2,localhost,45002
-3,localhost,45003
-4,localhost,45004
+0,dc01.utdallas.edu,45000
+1,dc02.utdallas.edu,45001
+2,dc03.utdallas.edu,45002
+3,dc04.utdallas.edu,45003
+4,dc05.utdallas.edu,45004
